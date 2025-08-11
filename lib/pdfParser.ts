@@ -7,12 +7,11 @@
 //     return data.text;
 // }
 
-import pdfParse from 'pdf-parse';
-
 /**
  * Extract text from a PDF given a Buffer (from uploaded file)
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<string> {
+  const pdfParse = (await import('pdf-parse')).default;
   const data = await pdfParse(buffer);
   return data.text;
 }
@@ -20,7 +19,5 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<string> {
 
 // Example usage:
 // extractTextFromPdf('path/to/your/document.pdf').then(text => {
-//     console.log(text);
-// }).catch(error => {
-//     console.error('Error extracting text:', error);
+//     console.log('Error extracting text:', error);
 // });
