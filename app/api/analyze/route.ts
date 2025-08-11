@@ -18,16 +18,26 @@ export async function POST(req: Request) {
 
     // Prompt for Gemini
     const prompt = `
-You're an AI resume analyzer. Given the text of a resume, return JSON with:
-- summary: string
-- skills: array of detected tech skills (e.g. JavaScript, MySQL)
-- email: email address found in resume, or null
-- score: number between 0-100 based on resume strength
-- improve: suggest improvements based on the resume weaknesses 
+You're an AI resume analyzer. Given the text of a resume, return a valid JSON object with exactly these fields:
 
-Respond only with valid JSON.
+{
+  "summary": "A concise summary of the resume content and key qualifications",
+  "skills": ["JavaScript", "React", "Node.js"],
+  "email": "email@example.com",
+  "score": 85,
+  "improve": "First improvement suggestion\\nSecond improvement suggestion\\nThird improvement suggestion"
+}
 
-Resume:
+Important:
+- summary: must be a string
+- skills: must be an array of strings
+- email: must be a string or null if no email found
+- score: must be a number between 0-100
+- improve: must be a string with suggestions separated by \\n
+
+Respond ONLY with valid JSON, no other text.
+
+Resume text:
 ${resumeText}
 `;
 
@@ -38,28 +48,58 @@ ${resumeText}
       .replace(/```$/, "")
       .trim();
 
-    const data = JSON.parse(cleaned);
+    console.log('Raw Gemini response:', geminiResponse);
+    console.log('Cleaned response:', cleaned);
+
+    let data;
+    try {
+      data = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.error('Failed to parse Gemini response as JSON:', parseError);
+      // Fallback data structure
+      data = {
+        summary: "Unable to analyze resume content",
+        skills: [],
+        email: null,
+        score: 0,
+        improve: "Unable to generate improvement suggestions"
+      };
+    }
+
+    // Ensure data has the correct format
+    const formattedData = {
+      summary: typeof data.summary === 'string' ? data.summary : "No summary available",
+      skills: Array.isArray(data.skills) ? data.skills : [],
+      email: typeof data.email === 'string' ? data.email : null,
+      score: typeof data.score === 'number' ? data.score : 0,
+      improve: typeof data.improve === 'string' ? data.improve : 
+               Array.isArray(data.improve) ? data.improve.join('\n') : 
+               "No improvement suggestions available"
+    };
+
+    console.log('Formatted data:', formattedData);
 
     const prisma = new PrismaClient();
     await prisma.resume.create({
       data: {
         name: null,
-        email: data.email,
-        skills: data.skills,
+        email: formattedData.email,
+        skills: formattedData.skills,
         analysis: {
-          summary: data.summary,
-          skills: data.skills,
-          score: data.score,
-          improve: data.improve
+          summary: formattedData.summary,
+          skills: formattedData.skills,
+          score: formattedData.score,
+          improve: formattedData.improve
         },
       },
     });
 
-    return NextResponse.json({ success: true, ...data });
-  } catch (err: any) {
-    console.error("❌ /api/analyze Error:", err.message || err);
+    return NextResponse.json({ success: true, ...formattedData });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Server error";
+    console.error("❌ /api/analyze Error:", errorMessage);
     return NextResponse.json(
-      { error: err.message || "Server error" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
