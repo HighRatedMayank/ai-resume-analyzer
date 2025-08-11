@@ -63,10 +63,10 @@ export default function Dropzone({ onFileAccepted }: { onFileAccepted: (file: Fi
   return (
     <motion.div
       className={`
-        relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300
+        relative border-2 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-all duration-300 shadow-sm
         ${isDragActive || dragActive
           ? 'border-blue-400 bg-blue-50 scale-105 shadow-lg'
-          : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50 hover:scale-[1.02]'
+          : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50 hover:scale-[1.02] hover:shadow-md'
         }
       `}
       whileHover={{ scale: 1.02 }}
